@@ -550,75 +550,114 @@ function renderAlt() {
 }
 
 // ---------- DRAG-TO-SCROLL (touch, penn og mus) ----------
-
 function aktiverDraScroll(el) {
     if (!el) return;
 
-    let aktiv = false;
-    let dratt = false;
-    let pointerId = null;
-    let startX = 0;
-    let startY = 0;
-    let startScrollLeft = 0;
+    const TERSEKEL = 8;
+    let dratt = false; // deles mellom mus/penn og touch for klikk-suppresjon
 
-    const DRAG_TERSKEL = 8;
+    // ---------- Mus og penn: Pointer Events ----------
+    let pAktiv = false;
+    let pPointerId = null;
+    let pStartX = 0;
+    let pStartY = 0;
+    let pStartScrollLeft = 0;
 
     el.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'touch') return; // touch håndteres under
         if (e.pointerType === 'mouse' && e.button !== 0) return;
-        aktiv = true;
-        dratt = false;
-        pointerId = e.pointerId;
-        startX = e.clientX;
-        startY = e.clientY;
-        startScrollLeft = el.scrollLeft;
-        // IKKE setPointerCapture her – det ville stjele klikket fra barn-elementene
+        pAktiv = true;
+        pPointerId = e.pointerId;
+        pStartX = e.clientX;
+        pStartY = e.clientY;
+        pStartScrollLeft = el.scrollLeft;
     });
 
     el.addEventListener('pointermove', (e) => {
-        if (!aktiv || e.pointerId !== pointerId) return;
+        if (e.pointerType === 'touch') return;
+        if (!pAktiv || e.pointerId !== pPointerId) return;
 
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
+        const dx = e.clientX - pStartX;
+        const dy = e.clientY - pStartY;
 
-        if (!dratt) {
-            if (Math.abs(dx) < DRAG_TERSKEL) return;
-
-            // Hvis brukeren beveger seg mer vertikalt enn horisontalt,
-            // er dette sannsynligvis en vertikal scroll i en bb-innlegg-boks.
-            if (Math.abs(dy) > Math.abs(dx)) {
-                aktiv = false;
-                pointerId = null;
-                return;
-            }
-
-            dratt = true;
-            el.classList.add('drar');
-            try { el.setPointerCapture(pointerId); } catch (_) {}
+        if (Math.abs(dx) < TERSEKEL) return;
+        if (Math.abs(dy) > Math.abs(dx)) {
+            pAktiv = false;
+            pPointerId = null;
+            return;
         }
 
-        el.scrollLeft = startScrollLeft - dx;
+        dratt = true;
+        el.classList.add('drar');
+        try { el.setPointerCapture(pPointerId); } catch (_) {}
+        el.scrollLeft = pStartScrollLeft - dx;
         e.preventDefault();
     });
 
-    const avslutt = (e) => {
-        if (!aktiv) return;
-        if (e && e.pointerId !== undefined && e.pointerId !== pointerId) return;
-
-        aktiv = false;
+    const pAvslutt = (e) => {
+        if (e && e.pointerType === 'touch') return;
+        if (!pAktiv) return;
+        if (e && e.pointerId !== undefined && e.pointerId !== pPointerId) return;
+        pAktiv = false;
         el.classList.remove('drar');
-
-        if (pointerId !== null) {
-            try { el.releasePointerCapture(pointerId); } catch (_) {}
+        if (pPointerId !== null) {
+            try { el.releasePointerCapture(pPointerId); } catch (_) {}
         }
-        pointerId = null;
-
+        pPointerId = null;
         setTimeout(() => { dratt = false; }, 0);
     };
 
-    el.addEventListener('pointerup', avslutt);
-    el.addEventListener('pointercancel', avslutt);
-    el.addEventListener('lostpointercapture', avslutt);
+    el.addEventListener('pointerup', pAvslutt);
+    el.addEventListener('pointercancel', pAvslutt);
+    el.addEventListener('lostpointercapture', pAvslutt);
 
+    // ---------- Touch: native touch events ----------
+    let tAktiv = false;
+    let tStartX = 0;
+    let tStartY = 0;
+    let tStartScrollLeft = 0;
+
+    el.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        tAktiv = true;
+        tStartX = e.touches[0].clientX;
+        tStartY = e.touches[0].clientY;
+        tStartScrollLeft = el.scrollLeft;
+    }, { passive: true });
+
+    el.addEventListener('touchmove', (e) => {
+        if (!tAktiv || e.touches.length !== 1) return;
+
+        const dx = e.touches[0].clientX - tStartX;
+        const dy = e.touches[0].clientY - tStartY;
+
+        if (Math.abs(dx) < TERSEKEL) return;
+
+        // Vertikal dominans → la nettleseren scrolle (f.eks. inni en bb-innlegg)
+        if (Math.abs(dy) > Math.abs(dx)) {
+            tAktiv = false;
+            return;
+        }
+
+        // preventDefault (krever passive: false) hindrer at nettleseren
+        // overtar gesten og dreper videre touchmove-events.
+        e.preventDefault();
+        dratt = true;
+        el.classList.add('drar');
+        el.scrollLeft = tStartScrollLeft - dx;
+    }, { passive: false });
+
+    const tAvslutt = () => {
+        if (!tAktiv && !dratt) return;
+        tAktiv = false;
+        el.classList.remove('drar');
+        setTimeout(() => { dratt = false; }, 0);
+    };
+
+    el.addEventListener('touchend', tAvslutt);
+    el.addEventListener('touchcancel', tAvslutt);
+
+    // ---------- Felles klikk-suppresjon etter drag ----------
     el.addEventListener('click', (e) => {
         if (dratt) {
             e.preventDefault();
