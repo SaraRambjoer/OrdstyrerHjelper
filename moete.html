@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordstyrestøtte – Møte</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="moete.js" defer></script>
+</head>
+<body>
+    <div class="card">
+        <h1>Aktivt møte</h1>
+        <p>Trykk <strong>Snakk</strong> for å sette en deltaker som aktiv taler.
+           Trykk en gang til for å avslutte taletid. Da er ingen aktive heller.</p>
+    </div>
+
+    <div class="row">
+        <span class="spacer"></span>
+        <a class="button-link" href="./nytt-moete.html">Nytt møte</a>
+    </div>
+
+    <div class="card">
+        <h1>Møtedeltakere</h1>
+        <div id="deltaker-grid" class="deltaker-grid"></div>
+        <p id="tom-melding" class="tom-melding" hidden>
+            Ingen deltakere funnet. <a href="./nytt-moete.html">Legg til deltakere</a>
+        </p>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="bottom-bar-header">
+            <span>Forslag til talerorden</span>
+            <span class="bb-algoritme" id="bb-algoritme">Algoritme: –</span>
+        </div>
+        <div class="bottom-bar-scroll" id="forslag-liste"></div>
+    </div>
+</body>
+</html>

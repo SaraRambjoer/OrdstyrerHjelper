@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordstyrestøtte</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="nytt-moete.js" defer></script>
+</head>
+<body>
+    <div class="card">
+        <h1>Nytt møte!</h1>
+        <p>Her kan du legge inn deltakere til et nytt møte.</p>
+    </div>
+
+    <div class="card">
+        <h1>Møteinnstillinger</h1>
+        <div class="column">
+            <label>
+                <span>Planleggingsalgoritme</span>
+                <select id="algoritme">
+                    <option value="kø">Kø</option>
+                    <option value="smart">Smart</option>
+                </select>
+            </label>
+
+            <label>
+                <span>Møtelengde (minutter)</span>
+                <input type="number" id="moete-lengde" value="60" min="1">
+            </label>
+
+            <label class="checkbox-label">
+                <input type="checkbox" id="feministisk">
+                <span>Feministisk møtepraksis</span>
+            </label>
+
+            <label>
+                <span>Prioriteringsfaktor for kvinner og ikke-binære</span>
+                <input type="number" id="feministisk-faktor" value="1.2" step="0.1" min="1">
+            </label>
+
+            <label>
+                <span>Makslengde innlegg (minutter)</span>
+                <input type="number" id="maks-innlegg" value="5" min="1">
+            </label>
+
+            <label>
+                <span>Makslengde kommentar (minutter)</span>
+                <input type="number" id="maks-kommentar" value="2" min="1">
+            </label>
+        </div>
+    </div>
+
+    <div class="card">
+        <h1>Møtedeltakere</h1>
+        <div id="møte-deltakere-innhold" class="column">
+
+        </div>
+        <button id="legg-til-deltaker" style="margin-top: var(--space-sm)">Legg til deltaker</button>
+    </div>
+    <div class="row">
+        <span class="spacer"></span>
+        <button id="lagre">Start møte</button>
+    </div>
+</body>
+</html>
