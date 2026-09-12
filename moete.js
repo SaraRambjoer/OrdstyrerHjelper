@@ -148,22 +148,20 @@ function varmOppLyd() {
     });
 }
 
+// ---------- SCORING ----------
+
 function typiskTaleSekunder(type) {
-    const tidKey    = type === 'innlegg' ? 'innleggTaleTid'    : 'kommentarTaleTid';
-    const antallKey = type === 'innlegg' ? 'innleggAntall'     : 'kommentarAntall';
+    const tidKey    = type === 'innlegg' ? 'innleggTaleTid' : 'kommentarTaleTid';
+    const antallKey = type === 'innlegg' ? 'innleggAntall'  : 'kommentarAntall';
 
     const totalTid    = deltakere.reduce((s, x) => s + (x[tidKey]    || 0), 0);
     const totalAntall = deltakere.reduce((s, x) => s + (x[antallKey] || 0), 0);
 
-    if (totalAntall > 10) {
-        return totalTid / totalAntall;
-    }
-    else if (totalAntall > 0) {
-        return (totalTid / totalAntall) * 0.5 + (hentMaksTaleSekunder(type) ?? 300)*0.5;
-    }
-    else {
-        return hentMaksTaleSekunder(type) ?? 300;
-    }
+    const maks = hentMaksTaleSekunder(type) ?? 300;
+
+    if (totalAntall === 0) return maks * 0.5;
+    if (totalAntall > 10)  return totalTid / totalAntall;
+    return (totalTid / totalAntall) * 0.5 + maks * 0.5;
 }
 
 // lavere jo bedre
@@ -173,23 +171,23 @@ function beregnScore(deltakerId, type, opprettet, nå = Date.now()) {
 
     const typiskSek = typiskTaleSekunder(type);
 
-    // Basis: hvor mye har de snakket - skiller ikke på type prat
-    let score = (d["innleggTaleTid"] || 0) + (d["kommentarTaleTid"] || 0);
+    // Basis: hvor mye har de snakket — begge typer samlet
+    let score = (d.innleggTaleTid || 0) + (d.kommentarTaleTid || 0);
 
-    // bonus for første innlegg
+    // Bonus for folk som ikke har hatt innlegg ennå
     if ((d.innleggAntall || 0) === 0) {
         score -= typiskSek / 5;
-    } 
-    
-    // 2. Feministisk — additivt og capped
+    }
+
+    // Feministisk — additivt og capped
     const prioritert = innstillinger.feministisk &&
         (d.gender === 'Kvinne' || d.gender === 'Ikke-binær/Annet');
     if (prioritert) {
         const faktor = Math.max(0, (innstillinger.feministiskFaktor || 1.2) - 1);
-        score -= typiskSek * faktor; // f.eks. 300s * 0.2 = 60s fortrinn
+        score -= typiskSek * faktor;
     }
 
-    // 3. Urgency — hvis man venter mer enn 1/10 av møtet får man ekstra prioritet
+    // Urgency — ventet > 1/10 av møtet gir ekstra prioritet, capped
     const moeteSek = (innstillinger.moeteLengdeMin || 60) * 60;
     const ventetSek = Math.max(0, (nå - opprettet) / 1000);
     const deadline = moeteSek * 0.1;
@@ -198,7 +196,7 @@ function beregnScore(deltakerId, type, opprettet, nå = Date.now()) {
         score -= overskudd;
     }
 
-    // 4. Tiebreak — minst nylig talt får liten fordel (maks ~6s)
+    // Tiebreak — minst nylig talt får liten fordel (maks ~6s)
     const sekSidenSist = d.sistTalt ? (nå - d.sistTalt) / 1000 : 1e9;
     score -= Math.min(sekSidenSist, 600) * 0.01;
 
@@ -549,73 +547,11 @@ function renderAlt() {
     renderBottomBar();
 }
 
-// ---------- DRAG-TO-SCROLL (touch, penn og mus) ----------
-function aktiverDraScroll(el) {
-    if (!el) return;
-
-    const TERSEKEL = 8;
-    let aktiv = false;
-    let dratt = false;
-    let pointerId = null;
-    let startX = 0;
-    let startScrollLeft = 0;
-
-    el.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'touch') return; // la nettleseren håndtere touch
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        aktiv = true;
-        dratt = false;
-        pointerId = e.pointerId;
-        startX = e.clientX;
-        startScrollLeft = el.scrollLeft;
-    });
-
-    el.addEventListener('pointermove', (e) => {
-        if (e.pointerType === 'touch') return;
-        if (!aktiv || e.pointerId !== pointerId) return;
-
-        const dx = e.clientX - startX;
-        if (!dratt) {
-            if (Math.abs(dx) < TERSEKEL) return;
-            dratt = true;
-            el.classList.add('drar');
-            try { el.setPointerCapture(pointerId); } catch (_) {}
-        }
-        el.scrollLeft = startScrollLeft - dx;
-        e.preventDefault();
-    });
-
-    const avslutt = (e) => {
-        if (e && e.pointerType === 'touch') return;
-        if (!aktiv) return;
-        aktiv = false;
-        el.classList.remove('drar');
-        if (pointerId !== null) {
-            try { el.releasePointerCapture(pointerId); } catch (_) {}
-        }
-        pointerId = null;
-        setTimeout(() => { dratt = false; }, 0);
-    };
-
-    el.addEventListener('pointerup', avslutt);
-    el.addEventListener('pointercancel', avslutt);
-    el.addEventListener('lostpointercapture', avslutt);
-
-    el.addEventListener('click', (e) => {
-        if (dratt) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    }, true);
-}
-
 // ---------- INIT ----------
 
 lastData();
 
 bbAlgoritme.textContent = innstillinger.algoritme === 'smart' ? 'smart' : 'kø';
-
-aktiverDraScroll(forslagListe);
 
 renderAlt();
 

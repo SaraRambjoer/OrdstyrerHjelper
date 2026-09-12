@@ -24,11 +24,10 @@ body {
     gap: var(--space-md);
     font-family: Verdana, Geneva, Tahoma, sans-serif;
     padding: var(--space-md);
-    margin: 0;
+    padding-bottom: 220px;
+    margin: 0 auto;
     min-height: 100vh;
     max-width: 1400px;
-    margin: 0 auto;
-    padding-bottom: 220px;
 }
 
 .card {
@@ -209,16 +208,17 @@ button:hover {
     padding-bottom: var(--space-sm);
     flex: 1;
     min-height: 0;
-    touch-action: pan-x pan-y;
     overscroll-behavior: contain;
 }
-.bottom-bar-scroll.drar {
-    cursor: grabbing;
-    user-select: none;
-    -webkit-user-select: none;
+
+/* Horizontal scrollbar på stripen (desktop) */
+.bottom-bar-scroll::-webkit-scrollbar { height: 8px; }
+.bottom-bar-scroll::-webkit-scrollbar-thumb {
+    background: var(--dos-bright);
 }
-
-
+.bottom-bar-scroll::-webkit-scrollbar-track {
+    background: var(--main-complement);
+}
 
 .bb-innlegg {
     flex: 0 0 auto;
@@ -302,6 +302,7 @@ button:hover {
 .bb-innlegg::-webkit-scrollbar-thumb {
     background: var(--dos-bright);
 }
+
 .deltaker-nedtelling {
     margin-top: var(--space-sm);
     padding: var(--space-sm);
