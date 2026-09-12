@@ -233,7 +233,7 @@ button:hover {
     max-height: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
-    touch-action: pan-y;
+    touch-action: auto;
     -webkit-overflow-scrolling: touch;   /* momentum on iOS */
 }
 
