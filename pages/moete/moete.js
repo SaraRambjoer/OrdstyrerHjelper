@@ -527,7 +527,7 @@ dialogOpen.addEventListener("click", () => {
 
 dialogExport.addEventListener("click", () => {
     const content = computeDialogContent(state);
-    downloadFile(content, "Møteeksport_" + Date.now().toString + ".yaml", "application/yaml");
+    downloadFile(content, "Møteeksport_" + new Date(Date.now()).toISOString() + ".yaml", "application/yaml");
 });
 
 dialogClose.addEventListener("click", () => {
