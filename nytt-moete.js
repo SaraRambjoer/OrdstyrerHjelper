@@ -1,3 +1,6 @@
+import { copyTextToClipboard, readTextFromClipboard } from './utils.js';
+
+
 const genderOptions = ["Mann", "Kvinne", "Ikke-binær/Annet", "Ikke oppgitt"];
 let idCounter = 1;
 let deltakere = [
@@ -96,18 +99,27 @@ function rekalkulerDeltakerliste() {
         deltakereDiv.appendChild(row);
     });
 
+    refreshButtonRender();
+}
+
+function refreshButtonRender() {
     const lagreButton = document.getElementById("lagre");
+    const writeClipboardButton = document.getElementById("skriv-clipboard");
+    
     if (deltakere.length === 0) {
         lagreButton.disabled = true;
         lagreButton.textContent = "Kan ikke starte møte uten deltakere";
+        writeClipboardButton.disabled = true;
     }
-    else if (deltakere.filter(x => x.name === null || x.name === undefined || x.name.trim() === "")) {
+    else if (deltakere.filter(x => x.navn === null || x.navn === undefined || x.navn.trim() === "").length > 0) {
         lagreButton.disabled = true;
-        lagreButton.textContent = "En eller flere deltakere har ikke registrert navn";    
+        lagreButton.textContent = "En eller flere deltakere har ikke registrert navn";
+        writeClipboardButton.disabled = true;
     }
     else {
         lagreButton.disabled = false;
         lagreButton.textContent = "Start møte";
+        writeClipboardButton.disabled = false;
     }
 }
 
@@ -122,6 +134,7 @@ function updateDeltakerNameById(id, navn) {
     if (deltakere.map(x => x.id).includes(id)) {
         let deltaker = deltakere.find(x => x.id === id);
         deltaker.navn = navn;
+        refreshButtonRender();
     }
 }
 
@@ -129,6 +142,7 @@ function updateDeltakerGender(id, gender) {
     if (deltakere.map(x => x.id).includes(id)) {
         let deltaker = deltakere.find(x => x.id === id);
         deltaker.gender = gender;
+        refreshButtonRender();
     }
 }
 
@@ -145,3 +159,70 @@ function save() {
     localStorage.setItem("moeteInnstillinger", JSON.stringify(hentInnstillinger()));
     window.location.href = "./moete.html";
 }
+
+// -------------------------- read/write contestants to clipboard ------------------------------
+
+async function exportToClipboard() {
+    const deltakerString = JSON.stringify(deltakere);
+    await copyTextToClipboard(deltakerString);
+}
+
+async function importFromClipboard() {
+    const textFromClipboard = await readTextFromClipboard();
+    let deltakereFromClipboard = undefined;
+    try {
+        deltakereFromClipboard = JSON.parse(textFromClipboard);
+    }
+    catch (_) {
+        return false;
+    }
+
+    // type checking sort of
+    if (!Array.isArray(deltakereFromClipboard)) {
+        return false;
+    }
+    if (deltakereFromClipboard.length === 0) {
+        return false;
+    }
+    if (deltakereFromClipboard.filter(x => x['navn'] == null || x['gender'] == null || x['id'] == null).length > 0) {
+        return false;
+    }
+
+    deltakere = deltakereFromClipboard;
+    rekalkulerDeltakerliste();
+    return true;
+}
+
+const readClipboardButton = document.getElementById("les-clipboard");
+const writeClipboardButton = document.getElementById("skriv-clipboard");
+
+readClipboardButton.addEventListener("click", async () => {
+    const success = await importFromClipboard();
+    if (!success) {
+        readClipboardButton.textContent = "Mislykket!";
+        readClipboardButton.disabled = true;
+        setTimeout(() => {
+            readClipboardButton.textContent = "(Forsøk) les deltakere fra utklippsverktøy";
+            readClipboardButton.disabled = false;
+        }, 2000);
+    }
+    else {
+        readClipboardButton.textContent = "Vellykket!";
+        readClipboardButton.disabled = true;
+        setTimeout(() => {
+            readClipboardButton.textContent = "(Forsøk) les deltakere fra utklippsverktøy";
+            readClipboardButton.disabled = false;
+        }, 2000);
+    }
+});
+
+writeClipboardButton.addEventListener("click", () => {
+    exportToClipboard();
+    writeClipboardButton.textContent = "Suksess!";
+    writeClipboardButton.disabled = true;
+    setTimeout(() => {
+        writeClipboardButton.textContent = "Skriv deltakere til utklippsverktøy";
+        writeClipboardButton.disabled = false;
+    },
+    2000);
+})

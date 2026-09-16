@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ordstyrestøtte</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="nytt-moete.js" defer></script>
+    <script type="module" src="nytt-moete.js" defer></script>
 </head>
 <body>
     <div class="card">
@@ -63,6 +63,8 @@
         <button id="legg-til-deltaker" style="margin-top: var(--space-sm)">Legg til deltaker</button>
     </div>
     <div class="row">
+        <button id="les-clipboard">(Forsøk) les deltakere fra utklippsverktøy</button>
+        <button id="skriv-clipboard">Skriv deltakere til utklippsverktøy</button>
         <span class="spacer"></span>
         <button id="lagre">Start møte</button>
     </div>
