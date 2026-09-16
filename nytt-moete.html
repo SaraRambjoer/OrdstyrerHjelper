@@ -10,17 +10,20 @@
 <body>
     <div class="card">
         <h1>Nytt møte!</h1>
-        <p>Her kan du legge inn deltakere til et nytt møte.</p>
+        <p>Her kan du legge inn deltakere til et nytt møte og konfigurere møteinstillinger.</p>
     </div>
 
     <div class="card">
         <h1>Møteinnstillinger</h1>
+        <p>
+            I denne seksjonen kan du sette møteinnstillinger. Standardinnstillinger er anbefalte forslag. Pass på å sett riktig møtelengde og makslengde på innlegg og kommentarer. 
+        </p>
         <div class="column">
             <label>
                 <span>Planleggingsalgoritme</span>
                 <select id="algoritme">
+                    <option value="smart">Smart - prioriterer lik fordeling av taletid i møte</option>
                     <option value="kø">Kø</option>
-                    <option value="smart">Smart</option>
                 </select>
             </label>
 
@@ -30,13 +33,14 @@
             </label>
 
             <label class="checkbox-label">
-                <input type="checkbox" id="feministisk">
+                <input type="checkbox" id="feministisk" checked>
                 <span>Feministisk møtepraksis</span>
             </label>
 
             <label>
                 <span>Prioriteringsfaktor for kvinner og ikke-binære</span>
                 <input type="number" id="feministisk-faktor" value="1.2" step="0.1" min="1">
+                <span class="hint">(Denne faktoren gir kvinner (og ikke-binære/annet) en bonus i forhold til menn (og ikke-definert). Dersom verdien er lik 2, så vil den totale taletiden til en kvinne bli telt som å være fratrukket en gjennomsnittlig taletid.)</span>
             </label>
 
             <label>

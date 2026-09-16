@@ -12,6 +12,8 @@ let lagreKnapp = document.getElementById("lagre");
 const feministiskCheckbox = document.getElementById("feministisk");
 const feministiskFaktorInput = document.getElementById("feministisk-faktor");
 
+feministiskCheckbox.checked = true;
+
 feministiskCheckbox.addEventListener("change", () => {
     feministiskFaktorInput.disabled = !feministiskCheckbox.checked;
 });
@@ -93,6 +95,20 @@ function rekalkulerDeltakerliste() {
 
         deltakereDiv.appendChild(row);
     });
+
+    const lagreButton = document.getElementById("lagre");
+    if (deltakere.length === 0) {
+        lagreButton.disabled = true;
+        lagreButton.textContent = "Kan ikke starte møte uten deltakere";
+    }
+    else if (deltakere.filter(x => x.name === null || x.name === undefined || x.name.trim() === "")) {
+        lagreButton.disabled = true;
+        lagreButton.textContent = "En eller flere deltakere har ikke registrert navn";    
+    }
+    else {
+        lagreButton.disabled = false;
+        lagreButton.textContent = "Start møte";
+    }
 }
 
 function removeDeltakerById(id) {
