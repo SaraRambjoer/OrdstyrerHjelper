@@ -71,7 +71,8 @@ function tegnInnlegg(deltakerId) {
         status: 'venter',
         opprettet: Date.now(),
         startet: null,
-        tittel: ''
+        tittel: '',
+        innleggTaleTid: 0,
     });
     lagreInnlegg(state);
     renderAlt();
@@ -91,7 +92,11 @@ function tegnKommentar(deltakerId) {
     if (!state.aktivInnleggId) return;
     const innlegg = state.innleggListe.find(i => i.id === state.aktivInnleggId);
     if (!innlegg) return;
-    innlegg.kommentarData.push({ id: deltakerId, opprettet: Date.now() });
+    innlegg.kommentarData.push({
+        id: deltakerId,
+        opprettet: Date.now(),
+        taleTid: 0,
+    });
     lagreInnlegg(state);
     renderAlt();
 }
@@ -185,6 +190,15 @@ function startTale(deltakerId, foretrukketType = null) {
         if (state.nåværendeTaleType === 'innlegg') delt.innleggTaleTid += 1;
         if (state.nåværendeTaleType === 'kommentar') delt.kommentarTaleTid += 1;
         state.gjeldendeTaleSekunder += 1;
+
+        const innlegg = state.innleggListe.find(i => i.id === state.aktivInnleggId);
+        if (innlegg) {
+            if (state.nåværendeTaleType === 'innlegg') {
+                innlegg.innleggTaleTid += 1;
+            } else if (state.nåværendeTaleType === 'kommentar') {
+                innlegg.kommentarData.find(k => k.id === delt.id).taleTid += 1;
+            }
+        }
 
         const tidEl = document.getElementById(`tid-${delt.id}`);
         if (tidEl) tidEl.textContent = formaterTid(delt.taleTid);
@@ -420,14 +434,27 @@ function computeDialogContent(state) {
     let maleCommentCount = 0;
     let ikkedefinertCommentCount = 0;
 
+    let womenCommentTaleTid = 0;
+    let nonbinaryCommentTaleTid = 0;
+    let maleCommentTaleTid = 0;
+    let ikkedefinertCommentTaleTid = 0;
+
     let womenInnleggCount = 0;
     let nonbinaryInnleggCount = 0;
     let maleInnleggCount = 0;
     let ikkedefinertInnleggCount = 0;
 
+    let womenInnleggTaleTid = 0;
+    let nonbinaryInnleggTaleTid = 0;
+    let maleInnleggTaleTid = 0;
+    let ikkedefinertInnleggTaleTid = 0;
+
     const addLine = (text = '') => {
         lines.push('\t'.repeat(currentIndent) + text);
     };
+
+    addLine("Innlegg i møte:");
+    currentIndent += 1;
 
     state.innleggListe.forEach((innlegg) => {
         addLine(`Innlegg: ${innlegg.id}`);
@@ -446,6 +473,7 @@ function computeDialogContent(state) {
 
         addLine(`Innleggsholder: ${innleggDeltaker.navn}`);
         addLine(`Innleggsholder kjønn: ${innleggKjonn}`);
+        addLine(`Innleggsholder taletid: ${formaterTid(innlegg.innleggTaleTid)}`);
         addLine('Kommentarer: ');
         currentIndent += 1;
 
@@ -454,6 +482,11 @@ function computeDialogContent(state) {
         let maleCommentCount_Innlegg = 0;
         let ikkedefinertCommentCount_Innlegg = 0;
 
+        let womenCommentTaleTid_Innlegg = 0;
+        let nonbinaryCommentTaleTid_Innlegg = 0;
+        let maleCommentTaleTid_Innlegg = 0;
+        let ikkedefinertCommentTaleTid_Innlegg = 0;
+
         (innlegg.kommentarData ?? []).forEach((data) => {
             const kommentator = state.deltakere.find(x => x.id === data.id);
             const kommentatorKjonn = kommentator.gender;
@@ -461,15 +494,20 @@ function computeDialogContent(state) {
             addLine(`Kommentator: ${kommentator.navn}`);
             addLine(`Kommentator kjønn: ${kommentatorKjonn}`);
             addLine(`Ønske om kommentartid registrert: ${new Date(data.opprettet).toISOString()}`);
+            addLine(`Kommentartid: ${formaterTid(data.taleTid)}`);
 
             if (kommentatorKjonn === 'Kvinne') {
                 womenCommentCount_Innlegg += 1;
+                womenCommentTaleTid_Innlegg += data.taleTid;
             } else if (kommentatorKjonn === 'Mann') {
                 maleCommentCount_Innlegg += 1;
+                maleCommentTaleTid_Innlegg += data.taleTid;
             } else if (kommentatorKjonn === 'Ikke-binær/Annet') {
                 nonbinaryCommentCount_Innlegg += 1;
+                nonbinaryCommentTaleTid_Innlegg += data.taleTid;
             } else {
                 ikkedefinertCommentCount_Innlegg += 1;
+                ikkedefinertCommentTaleTid_Innlegg += data.taleTid;
             }
         });
 
@@ -480,34 +518,88 @@ function computeDialogContent(state) {
         addLine(`Antall kommentatorer (ikke-binær/annet): ${nonbinaryCommentCount_Innlegg}`);
         addLine(`Antall kommentatorer (ikke definert): ${ikkedefinertCommentCount_Innlegg}`);
 
+        addLine(`Kommentartid (kvinne): ${formaterTid(womenCommentTaleTid_Innlegg)}`);
+        addLine(`Kommentartid (menn): ${formaterTid(maleCommentTaleTid_Innlegg)}`);
+        addLine(`Kommentartid (ikke-binær/annet): ${formaterTid(nonbinaryCommentTaleTid_Innlegg)}`);
+        addLine(`Kommentartid (ikke definert): ${formaterTid(ikkedefinertCommentTaleTid_Innlegg)}`);
+
+        const sumKommentarTid_Innlegg =
+            womenCommentTaleTid_Innlegg +
+            maleCommentTaleTid_Innlegg +
+            nonbinaryCommentTaleTid_Innlegg +
+            ikkedefinertCommentTaleTid_Innlegg;
+
+        addLine(`Total kommentartid: ${formaterTid(sumKommentarTid_Innlegg)}`);
+        addLine(`Total innleggstid (innlegg + kommentarer): ${formaterTid(innlegg.innleggTaleTid + sumKommentarTid_Innlegg)}`);
+
         womenCommentCount += womenCommentCount_Innlegg;
         maleCommentCount += maleCommentCount_Innlegg;
         nonbinaryCommentCount += nonbinaryCommentCount_Innlegg;
         ikkedefinertCommentCount += ikkedefinertCommentCount_Innlegg;
 
+        womenCommentTaleTid += womenCommentTaleTid_Innlegg;
+        maleCommentTaleTid += maleCommentTaleTid_Innlegg;
+        nonbinaryCommentTaleTid += nonbinaryCommentTaleTid_Innlegg;
+        ikkedefinertCommentTaleTid += ikkedefinertCommentTaleTid_Innlegg;
+
         if (innleggKjonn === 'Kvinne') {
             womenInnleggCount += 1;
+            womenInnleggTaleTid += innlegg.innleggTaleTid;
         } else if (innleggKjonn === 'Mann') {
             maleInnleggCount += 1;
+            maleInnleggTaleTid += innlegg.innleggTaleTid;
         } else if (innleggKjonn === 'Ikke-binær/Annet') {
             nonbinaryInnleggCount += 1;
+            nonbinaryInnleggTaleTid += innlegg.innleggTaleTid;
         } else {
             ikkedefinertInnleggCount += 1;
+            ikkedefinertInnleggTaleTid += innlegg.innleggTaleTid;
         }
 
-        currentIndent = 0;
+        currentIndent -= 1;
     });
 
+    currentIndent = 0;
+
+    addLine('Statistikk:');
+    
+    currentIndent = 1;
     addLine(`Antall innlegg (kvinne): ${womenInnleggCount}`);
     addLine(`Antall innlegg (menn): ${maleInnleggCount}`);
     addLine(`Antall innlegg (ikke-binær/annet): ${nonbinaryInnleggCount}`);
     addLine(`Antall innlegg (ikke definert): ${ikkedefinertInnleggCount}`);
 
-    // Hvis du også vil ha totaler for kommentarer:
     addLine(`Antall kommentarer (kvinne): ${womenCommentCount}`);
     addLine(`Antall kommentarer (menn): ${maleCommentCount}`);
     addLine(`Antall kommentarer (ikke-binær/annet): ${nonbinaryCommentCount}`);
     addLine(`Antall kommentarer (ikke definert): ${ikkedefinertCommentCount}`);
+
+    addLine(`Taletid innlegg (kvinne): ${formaterTid(womenInnleggTaleTid)}`);
+    addLine(`Taletid innlegg (menn): ${formaterTid(maleInnleggTaleTid)}`);
+    addLine(`Taletid innlegg (ikke-binær/annet): ${formaterTid(nonbinaryInnleggTaleTid)}`);
+    addLine(`Taletid innlegg (ikke definert): ${formaterTid(ikkedefinertInnleggTaleTid)}`);
+
+    addLine(`Taletid kommentarer (kvinne): ${formaterTid(womenCommentTaleTid)}`);
+    addLine(`Taletid kommentarer (menn): ${formaterTid(maleCommentTaleTid)}`);
+    addLine(`Taletid kommentarer (ikke-binær/annet): ${formaterTid(nonbinaryCommentTaleTid)}`);
+    addLine(`Taletid kommentarer (ikke definert): ${formaterTid(ikkedefinertCommentTaleTid)}`);
+
+    addLine(`Taletid totalt (kvinne): ${formaterTid(womenInnleggTaleTid + womenCommentTaleTid)}`);
+    addLine(`Taletid totalt (menn): ${formaterTid(maleInnleggTaleTid + maleCommentTaleTid)}`);
+    addLine(`Taletid totalt (ikke-binær/annet): ${formaterTid(nonbinaryInnleggTaleTid + nonbinaryCommentTaleTid)}`);
+    addLine(`Taletid totalt (ikke definert): ${formaterTid(ikkedefinertInnleggTaleTid + ikkedefinertCommentTaleTid)}`);
+
+    addLine('Taletid per person:');
+
+    state.deltakere.forEach((d) => {
+        currentIndent = 2;
+        addLine("Navn: " + d.navn);
+        currentIndent = 3;
+        addLine("Kjønn: " + d.gender);
+        addLine("Total taletid: " + formaterTid(d.taleTid));
+        addLine("Total taletid (innlegg): " + formaterTid(d.innleggTaleTid));
+        addLine("Total taletid (kommentar): " + formaterTid(d.kommentarTaleTid));
+    });
 
     return lines.join('\n');
 }
