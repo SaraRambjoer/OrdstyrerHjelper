@@ -253,3 +253,8 @@
 @keyframes nedtelling-blink {
     50% { opacity: 0.35; }
 }
+
+.modal {
+    background-color: var(--contrast);
+    color: var(--dos-blue);
+}

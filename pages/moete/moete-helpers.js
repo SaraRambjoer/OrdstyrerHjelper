@@ -2,10 +2,14 @@ export function finnInnleggForTaler(state, deltakerId) {
     return state.innleggListe.find(i => i.talerId === deltakerId && i.status !== 'ferdig');
 }
 
-export function finnKommentarInnlegg(state, deltakerId) {
-    return state.innleggListe.find(i =>
-        i.status !== 'ferdig' && i.kommentarData.some(k => k.id === deltakerId)
-    );
+
+export function finnVentendeKommentar(state, deltakerId) {
+    for (const innlegg of state.innleggListe) {
+        if (innlegg.status === 'ferdig') continue;
+        const kommentar = innlegg.kommentarData.find(k => k.id === deltakerId && k.status === 'venter');
+        if (kommentar) return { innlegg, kommentar };
+    }
+    return null;
 }
 
 export function hentMaksTaleSekunder(state, type) {
