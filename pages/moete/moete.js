@@ -414,99 +414,104 @@ function renderAlt() {
 function computeDialogContent(state) {
     const lines = [];
     let currentIndent = 0;
+
     let womenCommentCount = 0;
     let nonbinaryCommentCount = 0;
     let maleCommentCount = 0;
     let ikkedefinertCommentCount = 0;
+
     let womenInnleggCount = 0;
     let nonbinaryInnleggCount = 0;
     let maleInnleggCount = 0;
     let ikkedefinertInnleggCount = 0;
 
-
-    const addLine = (text) => {
-        lines.push("\t".repeat(currentIndent) + text)
-    }
-
-    state.innleggListe.filter(x => x.status === '')
+    const addLine = (text = '') => {
+        lines.push('\t'.repeat(currentIndent) + text);
+    };
 
     state.innleggListe.forEach((innlegg) => {
-        addLine("Innlegg: " + innlegg.id);
+        addLine(`Innlegg: ${innlegg.id}`);
         currentIndent += 1;
-        console.log(innlegg, innlegg.tittel);
-        addLine("Tittel: " + innlegg.tittel);
-        addLine("Status: " + innlegg.status);
-        addLine("Opprettet tid: " + innlegg.opprettet.toString());
+
+        addLine(`Tittel: ${innlegg.tittel ?? ''}`);
+        addLine(`Status: ${innlegg.status ?? ''}`);
+        addLine(`Opprettet tid: ${new Date(innlegg.opprettet).toISOString()}`);
+
         if (innlegg.startet != null) {
-            addLine("Startet tid: " + innlegg.startet);
+            addLine(`Startet tid: ${new Date(innlegg.startet).toISOString()}`);
         }
+
         const innleggDeltaker = state.deltakere.find(x => x.id === innlegg.talerId);
-        addLine("Innleggsholder: " + innleggDeltaker.name);
-        addLine("Innleggsholder kjønn: " + innleggDeltaker.gender);
-        addLine("Kommentarer: ");
+        const innleggKjonn = innleggDeltaker.gender;
+
+        addLine(`Innleggsholder: ${innleggDeltaker.navn}`);
+        addLine(`Innleggsholder kjønn: ${innleggKjonn}`);
+        addLine('Kommentarer: ');
         currentIndent += 1;
-        
+
         let womenCommentCount_Innlegg = 0;
         let nonbinaryCommentCount_Innlegg = 0;
         let maleCommentCount_Innlegg = 0;
         let ikkedefinertCommentCount_Innlegg = 0;
 
-        innlegg.kommentarData.forEach((data) => {
-            const kommentarId = data.id;
-            const opprettetTid = data.opprettet;
-            const kommentator = state.deltakere.find(x => x.id === kommentarId);
-            addLine("Kommentator: " + kommentator.name);
-            addLine("Kommentator kjønn" + kommentator.gender);
-            addLine("Ønske om kommentartid registrert: ", opprettetTid.toString());
-            if (kommentator.gender === "Kvinne") {
+        (innlegg.kommentarData ?? []).forEach((data) => {
+            const kommentator = state.deltakere.find(x => x.id === data.id);
+            const kommentatorKjonn = kommentator.gender;
+
+            addLine(`Kommentator: ${kommentator.navn}`);
+            addLine(`Kommentator kjønn: ${kommentatorKjonn}`);
+            addLine(`Ønske om kommentartid registrert: ${new Date(data.opprettet).toISOString()}`);
+
+            if (kommentatorKjonn === 'Kvinne') {
                 womenCommentCount_Innlegg += 1;
-            }
-            else if (kommentator.gender === "Mann") {
+            } else if (kommentatorKjonn === 'Mann') {
                 maleCommentCount_Innlegg += 1;
-            }
-            else if (kommentator.gender === "Ikke-binær/Annet") {
+            } else if (kommentatorKjonn === 'Ikke-binær/Annet') {
                 nonbinaryCommentCount_Innlegg += 1;
-            }
-            else if (kommentator.gender === "Ikke oppgitt") {
+            } else {
                 ikkedefinertCommentCount_Innlegg += 1;
             }
         });
 
         currentIndent -= 1;
 
-        addLine("Antall kommentatorer (kvinne): " + womenCommentCount_Innlegg);
-        addLine("Antall kommentatorer (menn): " + maleCommentCount_Innlegg);
-        addLine("Antall kommentatorer (ikke-binær/annet): " + nonbinaryCommentCount_Innlegg);
-        addLine("Antall kommentatorer (ikke definert): " + ikkedefinertCommentCount_Innlegg);
+        addLine(`Antall kommentatorer (kvinne): ${womenCommentCount_Innlegg}`);
+        addLine(`Antall kommentatorer (menn): ${maleCommentCount_Innlegg}`);
+        addLine(`Antall kommentatorer (ikke-binær/annet): ${nonbinaryCommentCount_Innlegg}`);
+        addLine(`Antall kommentatorer (ikke definert): ${ikkedefinertCommentCount_Innlegg}`);
 
         womenCommentCount += womenCommentCount_Innlegg;
         maleCommentCount += maleCommentCount_Innlegg;
         nonbinaryCommentCount += nonbinaryCommentCount_Innlegg;
         ikkedefinertCommentCount += ikkedefinertCommentCount_Innlegg;
 
-        if (innleggDeltaker.gender === "Kvinne") {
+        if (innleggKjonn === 'Kvinne') {
             womenInnleggCount += 1;
-        }
-        else if (innleggDeltaker.gender === "Mann") {
+        } else if (innleggKjonn === 'Mann') {
             maleInnleggCount += 1;
-        }
-        else if (innleggDeltaker.gender === "Ikke-binær/Annet") {
+        } else if (innleggKjonn === 'Ikke-binær/Annet') {
             nonbinaryInnleggCount += 1;
-        }
-        else if (innleggDeltaker.gender === "Ikke oppgitt") {
+        } else {
             ikkedefinertInnleggCount += 1;
         }
 
         currentIndent = 0;
     });
 
-    addLine("Antall innlegg (kvinne): " + womenInnleggCount);
-    addLine("Antall innlegg (menn): " + maleInnleggCount);
-    addLine("Antall innlegg (ikke-binær/annet): " + nonbinaryInnleggCount);
-    addLine("Antall innlegg (ikke definert): " + ikkedefinertInnleggCount);
+    addLine(`Antall innlegg (kvinne): ${womenInnleggCount}`);
+    addLine(`Antall innlegg (menn): ${maleInnleggCount}`);
+    addLine(`Antall innlegg (ikke-binær/annet): ${nonbinaryInnleggCount}`);
+    addLine(`Antall innlegg (ikke definert): ${ikkedefinertInnleggCount}`);
 
-    return lines.join("\n");
+    // Hvis du også vil ha totaler for kommentarer:
+    addLine(`Antall kommentarer (kvinne): ${womenCommentCount}`);
+    addLine(`Antall kommentarer (menn): ${maleCommentCount}`);
+    addLine(`Antall kommentarer (ikke-binær/annet): ${nonbinaryCommentCount}`);
+    addLine(`Antall kommentarer (ikke definert): ${ikkedefinertCommentCount}`);
+
+    return lines.join('\n');
 }
+
 
 const dialog = document.getElementById("innlegg-modal");
 const dialogExport = document.getElementById("eksporter");
