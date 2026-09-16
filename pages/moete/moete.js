@@ -151,20 +151,29 @@ function startTale(deltakerId, foretrukketType = null) {
 
     if (type === 'innlegg') {
         const innlegg = finnInnleggForTaler(state, deltakerId);
-        if (innlegg && innlegg.status === 'venter') {
+        if (innlegg && (innlegg.status === 'venter' || innlegg.status === 'pause')) {
             if (state.aktivInnleggId && state.aktivInnleggId !== innlegg.id) {
                 const prev = state.innleggListe.find(i => i.id === state.aktivInnleggId);
                 if (prev) {
                     prev.status = 'ferdig';
                 }
             }
+            if (innlegg.status === 'venter') {
+                innlegg.startet = Date.now();
+            }
             innlegg.status = 'aktiv';
-            innlegg.startet = Date.now()
             state.aktivInnleggId = innlegg.id;
         }
     } else if (type === 'kommentar') {
         const funnet = finnVentendeKommentar(state, deltakerId);
         if (funnet) funnet.kommentar.status = 'aktiv';
+        // Someone is speaking again — un-pause the current innlegg
+        if (state.aktivInnleggId) {
+            const innlegg = state.innleggListe.find(i => i.id === state.aktivInnleggId);
+            if (innlegg && innlegg.status === 'pause') {
+                innlegg.status = 'aktiv';
+            }
+        }
     }
 
     state.nåværendeTaleType = type;
@@ -236,6 +245,13 @@ function startTale(deltakerId, foretrukketType = null) {
 }
 
 function stoppTale() {
+    // If an innlegg is currently active, park it in "pause" instead of leaving it "aktiv"
+    if (state.aktivInnleggId) {
+        const innlegg = state.innleggListe.find(i => i.id === state.aktivInnleggId);
+        if (innlegg && innlegg.status === 'aktiv') {
+            innlegg.status = 'pause';
+        }
+    }
     avsluttAktivTale();
     lagreInnlegg(state);
     renderAlt();
@@ -282,6 +298,9 @@ function render() {
             innleggBtn.textContent = 'Tegn innlegg';
         } else if (innleggForTaler.status === 'aktiv') {
             innleggBtn.textContent = 'Innlegg aktiv';
+            innleggBtn.disabled = true;
+        } else if (innleggForTaler.status === 'pause') {
+            innleggBtn.textContent = 'Innlegg pause';
             innleggBtn.disabled = true;
         } else {
             innleggBtn.textContent = 'Angre innlegg';
@@ -374,18 +393,23 @@ function renderBottomBar() {
         return;
     }
 
-    const aktiv = aktive.find(i => i.status === 'aktiv');
+    const aktiv = aktive.find(i => i.status === 'aktiv' || i.status === 'pause');
     const ventende = sorterVentendeInnlegg(state, aktive.filter(i => i.status === 'venter'));
     const rekkefølge = aktiv ? [aktiv, ...ventende] : ventende;
 
     rekkefølge.forEach((innlegg) => {
         const box = document.createElement('div');
-        box.className = 'bb-innlegg' + (innlegg.status === 'aktiv' ? ' bb-aktiv' : '');
+        box.className = 'bb-innlegg' + (
+            innlegg.status === 'aktiv' ? ' bb-aktiv' :
+            innlegg.status === 'pause' ? ' bb-pause' : ''
+        );
 
         const header = document.createElement('div');
         header.className = 'bb-innlegg-header';
         if (innlegg.status === 'aktiv') {
             header.textContent = '▶ Innlegg (aktiv)';
+        } else if (innlegg.status === 'pause') {
+            header.textContent = '⏸ Innlegg (pause)';
         } else if (!aktiv && rekkefølge.indexOf(innlegg) === 0) {
             header.textContent = 'Innlegg (start)';
         } else {
@@ -407,14 +431,19 @@ function renderBottomBar() {
 
         box.appendChild(input);
 
-        const ventendeKommentarer = innlegg.kommentarData.filter(k => k.status === 'venter');
+        const ventendeKommentarer = innlegg.kommentarData.filter(k => k.status === 'venter' || k.status == 'aktiv');
         if (ventendeKommentarer.length) {
             const kHeader = document.createElement('div');
             kHeader.className = 'bb-kommentar-header';
             kHeader.textContent = `Kommentarer (${ventendeKommentarer.length}):`;
             box.appendChild(kHeader);
 
-            const sortert = sorterKommentarer(state, innlegg).filter(k => k.status === 'venter');
+            let sortert = sorterKommentarer(state, innlegg).filter(k => k.status === 'venter');
+            if (innlegg.kommentarData.filter(x => x.status === 'aktiv').length > 0) {
+                const aktivKommentar = innlegg.kommentarData.find(x => x.status === 'aktiv');
+                sortert = [aktivKommentar, ...sortert];
+            }
+            console.log(sortert);
             sortert.forEach((k, i) => {
                 box.appendChild(lagKommentarRad(k, i + 1));
             });
@@ -477,7 +506,7 @@ function computeDialogContent(state) {
         currentIndent += 1;
 
         addLine(`Tittel: ${innlegg.tittel}`);
-        const displayStatus = innlegg.status === "aktiv" ? "ferdig" : innlegg.status; // the last innlegg is "active" but that is confusing in export
+        const displayStatus = innlegg.status === "aktiv" || innlegg.status === 'pause' ? "ferdig" : innlegg.status; // the last innlegg is "active" or "pause" but that is confusing in export
         addLine(`Status: ${displayStatus}`);
         addLine(`Opprettet tid: ${new Date(innlegg.opprettet).toISOString()}`);
 

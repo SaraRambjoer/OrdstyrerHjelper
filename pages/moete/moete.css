@@ -154,6 +154,10 @@
     border-color: var(--dos-bright);
     background-color: #000077;
 }
+.bb-innlegg.bb-pause {
+    border: 3px dashed var(--dos-bright);
+}
+
 .bb-innlegg-header {
     font-size: 0.65rem;
     text-transform: uppercase;
