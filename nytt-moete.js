@@ -190,6 +190,7 @@ async function importFromClipboard() {
 
     deltakere = deltakereFromClipboard;
     rekalkulerDeltakerliste();
+    idCounter = deltakere.length+1;
     return true;
 }
 
