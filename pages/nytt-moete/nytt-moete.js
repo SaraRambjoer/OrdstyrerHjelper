@@ -154,7 +154,7 @@ function save() {
             taleTid: 0,
         }
     });
-
+    localStorage.clear();
     localStorage.setItem("deltakere", JSON.stringify(lagretDeltakere));
     localStorage.setItem("moeteInnstillinger", JSON.stringify(hentInnstillinger()));
     window.location.href = "../moete/moete.html";

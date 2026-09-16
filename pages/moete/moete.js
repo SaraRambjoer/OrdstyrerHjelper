@@ -14,6 +14,7 @@ import {
     sorterVentendeInnlegg, 
 }
 from './scoring.js';
+import { downloadFile } from '../../utils/utils-input-output.js';
 
 
 
@@ -66,9 +67,11 @@ function tegnInnlegg(deltakerId) {
     state.innleggListe.push({
         id: 'innlegg' + state.innleggTeller++,
         talerId: deltakerId,
-        kommentarIder: [],
+        kommentarData: [],
         status: 'venter',
         opprettet: Date.now(),
+        startet: null,
+        tittel: ''
     });
     lagreInnlegg(state);
     renderAlt();
@@ -77,9 +80,9 @@ function tegnInnlegg(deltakerId) {
 function tegnKommentar(deltakerId) {
     for (const innlegg of state.innleggListe) {
         if (innlegg.status === 'ferdig') continue;
-        const idx = innlegg.kommentarIder.findIndex(k => k.id === deltakerId);
+        const idx = innlegg.kommentarData.findIndex(k => k.id === deltakerId);
         if (idx !== -1) {
-            innlegg.kommentarIder.splice(idx, 1);
+            innlegg.kommentarData.splice(idx, 1);
             lagreInnlegg(state);
             renderAlt();
             return;
@@ -88,7 +91,7 @@ function tegnKommentar(deltakerId) {
     if (!state.aktivInnleggId) return;
     const innlegg = state.innleggListe.find(i => i.id === state.aktivInnleggId);
     if (!innlegg) return;
-    innlegg.kommentarIder.push({ id: deltakerId, opprettet: Date.now() });
+    innlegg.kommentarData.push({ id: deltakerId, opprettet: Date.now() });
     lagreInnlegg(state);
     renderAlt();
 }
@@ -101,9 +104,9 @@ function avsluttAktivTale() {
     if (state.aktivDeltakerId && state.nåværendeTaleType === 'kommentar') {
         for (const innlegg of state.innleggListe) {
             if (innlegg.status === 'ferdig') continue;
-            const idx = innlegg.kommentarIder.findIndex(k => k.id === state.aktivDeltakerId);
+            const idx = innlegg.kommentarData.findIndex(k => k.id === state.aktivDeltakerId);
             if (idx !== -1) {
-                innlegg.kommentarIder.splice(idx, 1);
+                innlegg.kommentarData.splice(idx, 1);
                 break;
             }
         }
@@ -123,8 +126,12 @@ function startTale(deltakerId, foretrukketType = null) {
 
     let type = foretrukketType;
 
-    if (type === 'kommentar' && !finnKommentarInnlegg(state, deltakerId)) type = null;
-    if (type === 'innlegg' && !finnInnleggForTaler(state, deltakerId)) type = null;
+    if (type === 'kommentar' && !finnKommentarInnlegg(state, deltakerId)) {
+        type = null;
+    }
+    if (type === 'innlegg' && !finnInnleggForTaler(state, deltakerId)) {
+        type = null;
+    }
 
     if (!type) {
         if (finnKommentarInnlegg(state, deltakerId)) {
@@ -141,9 +148,12 @@ function startTale(deltakerId, foretrukketType = null) {
         if (innlegg && innlegg.status === 'venter') {
             if (state.aktivInnleggId && state.aktivInnleggId !== innlegg.id) {
                 const prev = state.innleggListe.find(i => i.id === state.aktivInnleggId);
-                if (prev) prev.status = 'ferdig';
+                if (prev) {
+                    prev.status = 'ferdig';
+                }
             }
             innlegg.status = 'aktiv';
+            innlegg.startet = Date.now()
             state.aktivInnleggId = innlegg.id;
         }
     }
@@ -277,7 +287,7 @@ function render() {
         kort.appendChild(knapper);
 
         if (deltaker.id === state.aktivDeltakerId) {
-            const gjenstaar = hentGjenstaaendeSekunder();
+            const gjenstaar = hentGjenstaaendeSekunder(state);
             if (gjenstaar !== null) {
                 const nedtelling = document.createElement('div');
                 nedtelling.className = 'deltaker-nedtelling';
@@ -299,24 +309,37 @@ function render() {
 
 // ---------- RENDER: BOTTOM BAR ----------
 
-function lagTalerRad(deltakerId, ekstraKlasse, prefiks, foretrukketType) {
-    const d = state.deltakere.find(dd => dd.id === deltakerId);
+function lagInnleggRad(innlegg) {
+    const d = state.deltakere.find(dd => dd.id === innlegg.talerId);
     const rad = document.createElement('div');
-    rad.className = 'bb-taler ' + ekstraKlasse;
-    if (state.aktivDeltakerId === deltakerId && state.nåværendeTaleType === foretrukketType) {
+    rad.className = 'bb-taler bb-innlegg-taler';
+    if (state.aktivDeltakerId === innlegg.talerId && state.nåværendeTaleType === 'innlegg') {
         rad.classList.add('bb-taler-aktiv');
-    }
-    if (prefiks) {
-        const p = document.createElement('span');
-        p.className = 'bb-num';
-        p.textContent = prefiks;
-        rad.appendChild(p);
     }
     const n = document.createElement('span');
     n.textContent = d ? d.navn : '???';
     rad.appendChild(n);
     rad.title = 'Klikk for å starte taletid';
-    rad.addEventListener('click', () => startTale(deltakerId, foretrukketType || null));
+    rad.addEventListener('click', () => startTale(innlegg.talerId, 'innlegg'));
+    return rad;
+}
+
+function lagKommentarRad(kommentar, nummer) {
+    const d = state.deltakere.find(dd => dd.id === kommentar.id);
+    const rad = document.createElement('div');
+    rad.className = 'bb-taler bb-kommentar-taler';
+    if (state.aktivDeltakerId === kommentar.id && state.nåværendeTaleType === 'kommentar') {
+        rad.classList.add('bb-taler-aktiv');
+    }
+    const p = document.createElement('span');
+    p.className = 'bb-num';
+    p.textContent = `${nummer}.`;
+    rad.appendChild(p);
+    const n = document.createElement('span');
+    n.textContent = d ? d.navn : '???';
+    rad.appendChild(n);
+    rad.title = 'Klikk for å starte taletid';
+    rad.addEventListener('click', () => startTale(kommentar.id, 'kommentar'));
     return rad;
 }
 
@@ -351,19 +374,29 @@ function renderBottomBar() {
         }
         box.appendChild(header);
 
-        box.appendChild(lagTalerRad(innlegg.talerId, 'bb-innlegg-taler', null, 'innlegg'));
+        box.appendChild(lagInnleggRad(innlegg));
 
-        if (innlegg.kommentarIder.length) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Tema for innlegg";
+        input.classList = "bb-input";
+        input.style = {};
+        input.addEventListener("input", (input) => {
+            innlegg.tittel = input.target.value;
+            state.innleggListe[idx] = innlegg;
+        });
+
+        box.appendChild(input);
+
+        if (innlegg.kommentarData.length) {
             const kHeader = document.createElement('div');
             kHeader.className = 'bb-kommentar-header';
-            kHeader.textContent = `Kommentarer (${innlegg.kommentarIder.length}):`;
+            kHeader.textContent = `Kommentarer (${innlegg.kommentarData.length}):`;
             box.appendChild(kHeader);
 
             const sortert = sorterKommentarer(state, innlegg);
             sortert.forEach((k, i) => {
-                box.appendChild(
-                    lagTalerRad(k.id, 'bb-kommentar-taler', `${i + 1}.`, 'kommentar')
-                );
+                box.appendChild(lagKommentarRad(k, i + 1));
             });
         }
 
@@ -375,6 +408,126 @@ function renderAlt() {
     render();
     renderBottomBar();
 }
+
+// ---------- DIALOG ----------
+
+function computeDialogContent(state) {
+    const lines = [];
+    let currentIndent = 0;
+    let womenCommentCount = 0;
+    let nonbinaryCommentCount = 0;
+    let maleCommentCount = 0;
+    let ikkedefinertCommentCount = 0;
+    let womenInnleggCount = 0;
+    let nonbinaryInnleggCount = 0;
+    let maleInnleggCount = 0;
+    let ikkedefinertInnleggCount = 0;
+
+
+    const addLine = (text) => {
+        lines.push("\t".repeat(currentIndent) + text)
+    }
+
+    state.innleggListe.filter(x => x.status === '')
+
+    state.innleggListe.forEach((innlegg) => {
+        addLine("Innlegg: " + innlegg.id);
+        currentIndent += 1;
+        console.log(innlegg, innlegg.tittel);
+        addLine("Tittel: " + innlegg.tittel);
+        addLine("Status: " + innlegg.status);
+        addLine("Opprettet tid: " + innlegg.opprettet.toString());
+        if (innlegg.startet != null) {
+            addLine("Startet tid: " + innlegg.startet);
+        }
+        const innleggDeltaker = state.deltakere.find(x => x.id === innlegg.talerId);
+        addLine("Innleggsholder: " + innleggDeltaker.name);
+        addLine("Innleggsholder kjønn: " + innleggDeltaker.gender);
+        addLine("Kommentarer: ");
+        currentIndent += 1;
+        
+        let womenCommentCount_Innlegg = 0;
+        let nonbinaryCommentCount_Innlegg = 0;
+        let maleCommentCount_Innlegg = 0;
+        let ikkedefinertCommentCount_Innlegg = 0;
+
+        innlegg.kommentarData.forEach((data) => {
+            const kommentarId = data.id;
+            const opprettetTid = data.opprettet;
+            const kommentator = state.deltakere.find(x => x.id === kommentarId);
+            addLine("Kommentator: " + kommentator.name);
+            addLine("Kommentator kjønn" + kommentator.gender);
+            addLine("Ønske om kommentartid registrert: ", opprettetTid.toString());
+            if (kommentator.gender === "Kvinne") {
+                womenCommentCount_Innlegg += 1;
+            }
+            else if (kommentator.gender === "Mann") {
+                maleCommentCount_Innlegg += 1;
+            }
+            else if (kommentator.gender === "Ikke-binær/Annet") {
+                nonbinaryCommentCount_Innlegg += 1;
+            }
+            else if (kommentator.gender === "Ikke oppgitt") {
+                ikkedefinertCommentCount_Innlegg += 1;
+            }
+        });
+
+        currentIndent -= 1;
+
+        addLine("Antall kommentatorer (kvinne): " + womenCommentCount_Innlegg);
+        addLine("Antall kommentatorer (menn): " + maleCommentCount_Innlegg);
+        addLine("Antall kommentatorer (ikke-binær/annet): " + nonbinaryCommentCount_Innlegg);
+        addLine("Antall kommentatorer (ikke definert): " + ikkedefinertCommentCount_Innlegg);
+
+        womenCommentCount += womenCommentCount_Innlegg;
+        maleCommentCount += maleCommentCount_Innlegg;
+        nonbinaryCommentCount += nonbinaryCommentCount_Innlegg;
+        ikkedefinertCommentCount += ikkedefinertCommentCount_Innlegg;
+
+        if (innleggDeltaker.gender === "Kvinne") {
+            womenInnleggCount += 1;
+        }
+        else if (innleggDeltaker.gender === "Mann") {
+            maleInnleggCount += 1;
+        }
+        else if (innleggDeltaker.gender === "Ikke-binær/Annet") {
+            nonbinaryInnleggCount += 1;
+        }
+        else if (innleggDeltaker.gender === "Ikke oppgitt") {
+            ikkedefinertInnleggCount += 1;
+        }
+
+        currentIndent = 0;
+    });
+
+    addLine("Antall innlegg (kvinne): " + womenInnleggCount);
+    addLine("Antall innlegg (menn): " + maleInnleggCount);
+    addLine("Antall innlegg (ikke-binær/annet): " + nonbinaryInnleggCount);
+    addLine("Antall innlegg (ikke definert): " + ikkedefinertInnleggCount);
+
+    return lines.join("\n");
+}
+
+const dialog = document.getElementById("innlegg-modal");
+const dialogExport = document.getElementById("eksporter");
+const dialogClose = document.getElementById("lukk")
+const dialogOpen = document.getElementById("aapne-modal");
+const dialogContent = document.getElementById("modal-innhold");
+
+dialogOpen.addEventListener("click", () => {
+    dialog.showModal();
+    const content = computeDialogContent(state);
+    dialogContent.textContent = content;
+});
+
+dialogExport.addEventListener("click", () => {
+    const content = computeDialogContent(state);
+    downloadFile(content, "Møteeksport_" + Date.now().toString + ".yaml", "application/yaml");
+});
+
+dialogClose.addEventListener("click", () => {
+    dialog.close();
+});
 
 // ---------- INIT ----------
 

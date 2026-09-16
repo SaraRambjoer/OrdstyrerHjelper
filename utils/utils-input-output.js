@@ -16,3 +16,21 @@ export async function readTextFromClipboard() {
     console.error('Failed to read clipboard: ', err);
   }
 }
+
+
+export function downloadFile(content, fileName, contentType) {
+  const blob = new Blob([content], { type: contentType });
+  
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.style.display = 'none';
+  
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  
+  URL.revokeObjectURL(url);
+}

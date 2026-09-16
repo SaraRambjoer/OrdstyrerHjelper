@@ -1,3 +1,4 @@
+import { hentMaksTaleSekunder } from "./moete-helpers.js";
 
 function typiskTaleSekunder(state, type) {
     const tidKey    = type === 'innlegg' ? 'innleggTaleTid' : 'kommentarTaleTid';
@@ -53,11 +54,11 @@ function beregnScore(state, deltakerId, type, opprettet, nå = Date.now()) {
 }
 
 export function sorterKommentarer(state, innlegg) {
-    if (state.innstillinger.algoritme !== 'smart') return [...innlegg.kommentarIder];
+    if (state.innstillinger.algoritme !== 'smart') return [...innlegg.kommentarData];
     const nå = Date.now();
-    return [...innlegg.kommentarIder].sort((a, b) =>
-        beregnScore(a.id, 'kommentar', a.opprettet, nå) -
-        beregnScore(b.id, 'kommentar', b.opprettet, nå)
+    return [...innlegg.kommentarData].sort((a, b) =>
+        beregnScore(state, a.id, 'kommentar', a.opprettet, nå) -
+        beregnScore(state, b.id, 'kommentar', b.opprettet, nå)
     );
 }
 
@@ -65,7 +66,7 @@ export function sorterVentendeInnlegg(state, liste) {
     if (state.innstillinger.algoritme !== 'smart') return [...liste];
     const nå = Date.now();
     return [...liste].sort((a, b) =>
-        beregnScore(a.talerId, 'innlegg', a.opprettet, nå) -
-        beregnScore(b.talerId, 'innlegg', b.opprettet, nå)
+        beregnScore(state, a.talerId, 'innlegg', a.opprettet, nå) -
+        beregnScore(state, b.talerId, 'innlegg', b.opprettet, nå)
     );
 }

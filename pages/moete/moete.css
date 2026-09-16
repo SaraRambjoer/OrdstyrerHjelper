@@ -35,7 +35,7 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.85rem;
-    color: var(--constrast-complement);
+    color: var(--contrast-complement);
 }
 
 .deltaker-kort.active .deltaker-stat {
@@ -73,7 +73,7 @@
 }
 
 .tom-melding {
-    color: var(--constrast-complement);
+    color: var(--contrast-complement);
     text-align: center;
     padding: var(--space-lg);
     font-size: 1rem;
@@ -102,7 +102,7 @@
     border-bottom: 1px solid var(--main-complement);
     margin-bottom: var(--space-sm);
     font-size: 0.85rem;
-    color: var(--constrast-complement);
+    color: var(--contrast-complement);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -189,7 +189,7 @@
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--constrast-complement);
+    color: var(--contrast-complement);
     margin-top: 6px;
     margin-bottom: 2px;
 }
@@ -199,13 +199,13 @@
     font-size: 0.85rem;
 }
 .bb-num {
-    color: var(--constrast-complement);
+    color: var(--contrast-complement);
     font-size: 0.75rem;
     min-width: 16px;
     display: inline-block;
 }
 .bb-tom {
-    color: var(--constrast-complement);
+    color: var(--contrast-complement);
     font-style: italic;
     padding: var(--space-md);
     font-size: 0.9rem;
@@ -215,6 +215,14 @@
 .bb-innlegg::-webkit-scrollbar-thumb {
     background: var(--dos-bright);
 }
+
+.bb-input {
+    background-color: var(--contrast);
+    border: 1px solid var(--main);
+    color: var(--main);
+    margin-top: var(--space-sm);
+}
+
 
 .deltaker-nedtelling {
     margin-top: var(--space-sm);

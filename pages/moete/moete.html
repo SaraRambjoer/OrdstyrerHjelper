@@ -32,8 +32,19 @@
         <div class="bottom-bar-header">
             <span>Forslag til talerorden</span>
             <span class="bb-algoritme" id="bb-algoritme">Algoritme: –</span>
+            <button id="aapne-modal">Åpen liste over innlegg</button>
         </div>
         <div class="bottom-bar-scroll" id="forslag-liste"></div>
     </div>
+
+    <dialog id="innlegg-modal">
+        <h2>Innlegg</h2>
+        <pre id="modal-innhold"></pre>
+        <div class="row">
+            <span class="spacer"></span>
+            <button id="eksporter">Eksporter</button>
+            <button id="lukk">Lukk modal</button>
+        </div>
+    </dialog>
 </body>
 </html>

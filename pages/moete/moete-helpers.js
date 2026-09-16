@@ -4,7 +4,7 @@ export function finnInnleggForTaler(state, deltakerId) {
 
 export function finnKommentarInnlegg(state, deltakerId) {
     return state.innleggListe.find(i =>
-        i.status !== 'ferdig' && i.kommentarIder.some(k => k.id === deltakerId)
+        i.status !== 'ferdig' && i.kommentarData.some(k => k.id === deltakerId)
     );
 }
 
@@ -15,7 +15,7 @@ export function hentMaksTaleSekunder(state, type) {
 }
 
 export function hentGjenstaaendeSekunder(state) {
-    const maks = hentMaksTaleSekunder(state.nåværendeTaleType);
+    const maks = hentMaksTaleSekunder(state, state.nåværendeTaleType);
     if (maks === null) return null;
     return maks - state.gjeldendeTaleSekunder;
 }

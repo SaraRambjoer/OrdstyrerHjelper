@@ -22,7 +22,7 @@ export function lastData(state) {
             const data = JSON.parse(lagretInnlegg);
             state.innleggListe = (data.innleggListe || []).map(i => ({
                 ...i,
-                kommentarIder: normaliserKommentarIder(i.kommentarIder),
+                kommentarData: normaliserkommentarData(i.kommentarData),
             }));
             state.aktivInnleggId = data.aktivInnleggId || null;
             state.innleggTeller = data.innleggTeller || 1;
@@ -56,7 +56,7 @@ function normaliserDeltaker(d) {
     };
 }
 
-function normaliserKommentarIder(arr) {
+function normaliserkommentarData(arr) {
     if (!Array.isArray(arr)) return [];
     return arr.map(k =>
         typeof k === 'string' ? { id: k, opprettet: Date.now() } : k
