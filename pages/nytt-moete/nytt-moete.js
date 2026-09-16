@@ -1,4 +1,4 @@
-import { copyTextToClipboard, readTextFromClipboard } from './utils.js';
+import { copyTextToClipboard, readTextFromClipboard } from '../../utils/utils-input-output.js';
 
 
 const genderOptions = ["Mann", "Kvinne", "Ikke-binær/Annet", "Ikke oppgitt"];
@@ -157,7 +157,7 @@ function save() {
 
     localStorage.setItem("deltakere", JSON.stringify(lagretDeltakere));
     localStorage.setItem("moeteInnstillinger", JSON.stringify(hentInnstillinger()));
-    window.location.href = "./moete.html";
+    window.location.href = "../moete/moete.html";
 }
 
 // -------------------------- read/write contestants to clipboard ------------------------------
