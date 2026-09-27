@@ -53,20 +53,58 @@ function beregnScore(state, deltakerId, type, opprettet, nå = Date.now()) {
     return score;
 }
 
+// Hvis scorene er nærmere enn dette (i sekunder), avgjør køposisjon.
+const NÆR_SCORE_TERSKEL_SEK = 120;
+
+// Feministisk modifikator på køposisjon (kun for tiebreak).
+const FEMINISTISK_KØ_BONUS = 2;
+
+// Effektiv køposisjon. Kvinner/ikke-binære får -2 når feministisk er på.
+function effektivKøposisjon(state, deltakerId, queuePosition) {
+    let pos = queuePosition ?? 0;
+    if (state.innstillinger.feministisk) {
+        const d = state.deltakere.find(dd => dd.id === deltakerId);
+        if (d && (d.gender === 'Kvinne' || d.gender === 'Ikke-binær/Annet')) {
+            pos -= FEMINISTISK_KØ_BONUS;
+        }
+    }
+    return pos;
+}
+
+// Sammenlign to kø-elementer (innlegg eller kommentar). Negativ => a først.
+function sammenlign(state, a, b, type, nå) {
+    const aId = type === 'innlegg' ? a.talerId : a.id;
+    const bId = type === 'innlegg' ? b.talerId : b.id;
+
+    const scoreA = beregnScore(state, aId, type, a.opprettet, nå);
+    const scoreB = beregnScore(state, bId, type, b.opprettet, nå);
+    const diff = scoreA - scoreB;
+
+    // Vesentlig forskjell — la score avgjøre.
+    if (Math.abs(diff) >= NÆR_SCORE_TERSKEL_SEK) return diff;
+
+    // Nær score — bruk (feministisk-justert) køposisjon.
+    const qA = effektivKøposisjon(state, aId, a.queuePosition);
+    const qB = effektivKøposisjon(state, bId, b.queuePosition);
+    return qA - qB;
+}
+
 export function sorterKommentarer(state, innlegg) {
-    if (state.innstillinger.algoritme !== 'smart') return [...innlegg.kommentarData];
+    if (state.innstillinger.algoritme !== 'smart') {
+        return [...innlegg.kommentarData];
+    }
     const nå = Date.now();
     return [...innlegg.kommentarData].sort((a, b) =>
-        beregnScore(state, a.id, 'kommentar', a.opprettet, nå) -
-        beregnScore(state, b.id, 'kommentar', b.opprettet, nå)
+        sammenlign(state, a, b, 'kommentar', nå)
     );
 }
 
 export function sorterVentendeInnlegg(state, liste) {
-    if (state.innstillinger.algoritme !== 'smart') return [...liste];
+    if (state.innstillinger.algoritme !== 'smart') {
+        return [...liste];
+    }
     const nå = Date.now();
     return [...liste].sort((a, b) =>
-        beregnScore(state, a.talerId, 'innlegg', a.opprettet, nå) -
-        beregnScore(state, b.talerId, 'innlegg', b.opprettet, nå)
+        sammenlign(state, a, b, 'innlegg', nå)
     );
 }

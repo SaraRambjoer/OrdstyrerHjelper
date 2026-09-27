@@ -37,6 +37,9 @@ let state = {
     gjeldendeTaleSekunder: 0,
     varselSpilt: false,
     tidUteSpilt: false,
+    // Eksplisitt kø-tracking (brukt av scoring.js som tiebreak)
+    innleggQueueTeller: 1,
+    kommentarQueueTeller: 1,
 };
 
 
@@ -73,6 +76,7 @@ function tegnInnlegg(deltakerId) {
         startet: null,
         tittel: '',
         innleggTaleTid: 0,
+        queuePosition: state.innleggQueueTeller++,
     });
     lagreInnlegg(state);
     renderAlt();
@@ -97,6 +101,7 @@ function tegnKommentar(deltakerId) {
         opprettet: Date.now(),
         taleTid: 0,
         status: 'venter',
+        queuePosition: state.kommentarQueueTeller++,
     });
     lagreInnlegg(state);
     renderAlt();
