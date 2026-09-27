@@ -202,6 +202,15 @@
     border-left: 4px solid #8888FF;
     font-size: 0.85rem;
 }
+.bb-innlegg-grunn {
+    font-size: 0.65rem;
+    color: var(--contrast-complement);
+    font-style: italic;
+    line-height: 1.3;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    word-break: break-word;
+}
 .bb-num {
     color: var(--contrast-complement);
     font-size: 0.75rem;

@@ -15,3 +15,7 @@ Automatiske foreslått talerekkefølge er valgfritt. Automatisk forslag av taler
 - Støtte for feministisk møtepraksis ved å vektlegge kvinner (og ikke-binære) med noe høyere prioritet.
 
 Løsningen lar deg legge inn personer i møtet inkl. navn. All data om personer lagres kun lokalt i din nettleser i "local storage". Fordi løsningen kun bruker selvskrivet javascript og ingen uteliggende pakker, bør ikke noen andre applikasjoner få tilgang til det (dersom nettleseren virker som det skal). 
+
+## Kjør lokalt
+
+python -m http.server

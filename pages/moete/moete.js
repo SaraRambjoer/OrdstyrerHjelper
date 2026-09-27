@@ -11,11 +11,21 @@ from './moete-helpers.js';
 
 import {
     sorterKommentarer, 
-    sorterVentendeInnlegg, 
+    sorterVentendeInnlegg,
+    beregnScore,
+    beregnGrunnerForInnlegg,
+    NÆR_SCORE_TERSKEL_SEK,
 }
 from './scoring.js';
 import { downloadFile } from '../../utils/utils-input-output.js';
 import { computeDialogContent } from './compute-dialog-content.js';
+
+
+// Rekkefølgen grunnene vises i (jf. spesifikasjon).
+const GRUNN_ORDER = ['Tid', 'Venting', 'Feministisk møtepraksis', 'Kø', 'Første innlegg'];
+function sorterGrunner(grunner) {
+    return GRUNN_ORDER.filter(g => grunner.includes(g));
+}
 
 
 let state = {
@@ -386,6 +396,39 @@ function lagKommentarRad(kommentar, nummer) {
     return rad;
 }
 
+// Beregn grunner for hvert innlegg i visningsrekkefølgen.
+// "Kø" legges til der score-forskjellen til en nabo er under terskelen,
+// fordi det er da køposisjonen faktisk avgjorde rekkefølgen.
+function beregnGrunnerForRekkefølge(state, rekkefølge) {
+    const nå = Date.now();
+    const grunnerMap = new Map();
+    const scoreMap = new Map();
+
+    for (const innlegg of rekkefølge) {
+        grunnerMap.set(innlegg.id, beregnGrunnerForInnlegg(state, innlegg, nå));
+        scoreMap.set(
+            innlegg.id,
+            beregnScore(state, innlegg.talerId, 'innlegg', innlegg.opprettet, nå)
+        );
+    }
+
+    for (let j = 0; j < rekkefølge.length; j++) {
+        const s   = scoreMap.get(rekkefølge[j].id);
+        const opp = j > 0 ? scoreMap.get(rekkefølge[j - 1].id) : null;
+        const ned = j < rekkefølge.length - 1 ? scoreMap.get(rekkefølge[j + 1].id) : null;
+
+        const nærNabo =
+            (opp !== null && Math.abs(opp - s) < NÆR_SCORE_TERSKEL_SEK) ||
+            (ned !== null && Math.abs(ned - s) < NÆR_SCORE_TERSKEL_SEK);
+
+        if (nærNabo) {
+            grunnerMap.get(rekkefølge[j].id).push('Rekkefølge i kø');
+        }
+    }
+
+    return grunnerMap;
+}
+
 function renderBottomBar() {
     forslagListe.innerHTML = '';
 
@@ -401,6 +444,8 @@ function renderBottomBar() {
     const aktiv = aktive.find(i => i.status === 'aktiv' || i.status === 'pause');
     const ventende = sorterVentendeInnlegg(state, aktive.filter(i => i.status === 'venter'));
     const rekkefølge = aktiv ? [aktiv, ...ventende] : ventende;
+
+    const grunnerMap = beregnGrunnerForRekkefølge(state, rekkefølge);
 
     rekkefølge.forEach((innlegg) => {
         const box = document.createElement('div');
@@ -423,6 +468,15 @@ function renderBottomBar() {
         box.appendChild(header);
 
         box.appendChild(lagInnleggRad(innlegg));
+
+        // Kort notat: hvorfor innlegget står der det står.
+        const grunner = sorterGrunner(grunnerMap.get(innlegg.id) || []);
+        if (grunner.length) {
+            const grunnEl = document.createElement('div');
+            grunnEl.className = 'bb-innlegg-grunn';
+            grunnEl.textContent = grunner.join(' + ');
+            box.appendChild(grunnEl);
+        }
 
         const input = document.createElement("input");
         input.type = "text";

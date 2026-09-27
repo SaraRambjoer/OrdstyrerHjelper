@@ -15,7 +15,7 @@ function typiskTaleSekunder(state, type) {
 }
 
 // lavere jo bedre
-function beregnScore(state, deltakerId, type, opprettet, nå = Date.now()) {
+export function beregnScore(state, deltakerId, type, opprettet, nå = Date.now()) {
     const d = state.deltakere.find(dd => dd.id === deltakerId);
     if (!d) return Infinity;
 
@@ -54,7 +54,7 @@ function beregnScore(state, deltakerId, type, opprettet, nå = Date.now()) {
 }
 
 // Hvis scorene er nærmere enn dette (i sekunder), avgjør køposisjon.
-const NÆR_SCORE_TERSKEL_SEK = 120;
+export const NÆR_SCORE_TERSKEL_SEK = 120;
 
 // Feministisk modifikator på køposisjon (kun for tiebreak).
 const FEMINISTISK_KØ_BONUS = 2;
@@ -90,9 +90,7 @@ function sammenlign(state, a, b, type, nå) {
 }
 
 export function sorterKommentarer(state, innlegg) {
-    if (state.innstillinger.algoritme !== 'smart') {
-        return [...innlegg.kommentarData];
-    }
+    if (state.innstillinger.algoritme !== 'smart') return [...innlegg.kommentarData];
     const nå = Date.now();
     return [...innlegg.kommentarData].sort((a, b) =>
         sammenlign(state, a, b, 'kommentar', nå)
@@ -100,11 +98,37 @@ export function sorterKommentarer(state, innlegg) {
 }
 
 export function sorterVentendeInnlegg(state, liste) {
-    if (state.innstillinger.algoritme !== 'smart') {
-        return [...liste];
-    }
+    if (state.innstillinger.algoritme !== 'smart') return [...liste];
     const nå = Date.now();
     return [...liste].sort((a, b) =>
         sammenlign(state, a, b, 'innlegg', nå)
     );
+}
+
+// Korte merkelapper for hvorfor et innlegg er der det er.
+// "Kø" er bevisst utelatt — det avgjøres kontekstuelt av visningsrekkefølgen.
+export function beregnGrunnerForInnlegg(state, innlegg, nå = Date.now()) {
+    const d = state.deltakere.find(dd => dd.id === innlegg.talerId);
+    if (!d) return [];
+
+    const grunner = ['Tid'];
+
+    if ((d.innleggAntall || 0) === 0) {
+        grunner.push('Første innlegg');
+    }
+
+    const prioritert = state.innstillinger.feministisk &&
+        (d.gender === 'Kvinne' || d.gender === 'Ikke-binær/Annet');
+    if (prioritert) {
+        grunner.push('Feministisk møtepraksis');
+    }
+
+    const moeteSek = (state.innstillinger.moeteLengdeMin || 60) * 60;
+    const ventetSek = Math.max(0, (nå - innlegg.opprettet) / 1000);
+    const deadline = moeteSek * 0.1;
+    if (ventetSek > deadline) {
+        grunner.push('Venting');
+    }
+
+    return grunner;
 }
