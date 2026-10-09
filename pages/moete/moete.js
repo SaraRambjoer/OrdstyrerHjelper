@@ -19,7 +19,7 @@ import {
 from './scoring.js';
 import { downloadFile } from '../../utils/utils-input-output.js';
 import { computeDialogContent } from './compute-dialog-content.js';
-
+import { beregnGjenstaaendeForInnlegg, beregnTotalEstimater } from './tidsestimering.js';
 
 // Rekkefølgen grunnene vises i (jf. spesifikasjon).
 const GRUNN_ORDER = ['Tid', 'Venting', 'Feministisk møtepraksis', 'Kø', 'Første innlegg'];
@@ -51,6 +51,55 @@ let state = {
     innleggQueueTeller: 1,
     kommentarQueueTeller: 1,
 };
+
+
+// ---------- ESTIMATER ----------
+
+function renderEstimater() {
+    const prependTime = (time) => {
+        let stringnum = time.toString();
+        if (stringnum.length === 1) {
+            stringnum = "0" + stringnum;
+        }
+        return stringnum;
+    };
+    const fmtH = (sekunder) => {
+        const timer = Math.floor(sekunder / (60*60));
+        const minutter = Math.floor((sekunder - timer*60*60)/60);
+        return "Kl. " + prependTime(timer) + ":" + prependTime(minutter);
+    }
+
+    const el = document.getElementById('topright-card-content');
+    el.replaceChildren();
+    if (!el) return;
+    const est = beregnTotalEstimater(state);
+    if (!est) {
+        el.textContent = '';
+        return;
+    }
+    const fmt = (sek) => formaterTid(Math.round(sek));
+    const parts = [];
+    const currentDate = new Date(Date.now());
+    const currentMinute = currentDate.getMinutes();
+    const currentHours = currentDate.getHours();
+    parts.push(`${fmtH(currentHours*60*60 + currentMinute*60)}`);
+    parts.push(`Maks gjenværende tid: ${fmt(est.totalMaks)} (${fmtH(currentHours*60*60 + currentMinute*60 + est.totalMaks)})`);
+    parts.push(`Snitt gjenværende tid uten kommentarer: ${fmt(est.totalAvg)} (${fmtH(currentHours*60*60 + currentMinute*60 + est.totalAvg)})`);
+    parts.push(`Snitt gjennværende tid med kommentarer: ${fmt(est.totalAvgMedKommentarer)} (${fmtH(currentHours*60*60 + currentMinute*60 + est.totalAvgMedKommentarer)})`);
+    if (state.aktivtInnlegg) {
+        const aktivtInnlegg = state.innleggListe[state.aktivInnleggId];
+        const estInnlegg = beregnGjenstaaendeForInnlegg(state, aktivtInnlegg);
+        parts.push('---');
+        parts.push(`Maks gjenværende innleggstidtid: ${fmt(estInnlegg.totalMaks)} (${fmtH(currentHours*60*60 + currentMinute*60 + estInnlegg.totalMaks)})`);
+        parts.push(`Snitt gjenværende innleggstid: ${fmt(estInnlegg.totalAvg)} (${fmtH(currentHours*60*60 + currentMinute*60 + estInnlegg.totalAvg)})`);
+    }
+
+    parts.forEach((part) => {
+        const span = document.createElement('span');
+        span.textContent = part;
+        el.appendChild(span);
+    })
+}
 
 
 const LYD_VARSEL_STI = '../../lyder/varsel.mp3';
@@ -447,7 +496,7 @@ function renderBottomBar() {
 
     const grunnerMap = beregnGrunnerForRekkefølge(state, rekkefølge);
 
-    rekkefølge.forEach((innlegg) => {
+    rekkefølge.forEach((innlegg, idx) => {
         const box = document.createElement('div');
         box.className = 'bb-innlegg' + (
             innlegg.status === 'aktiv' ? ' bb-aktiv' :
@@ -460,7 +509,7 @@ function renderBottomBar() {
             header.textContent = '▶ Innlegg (aktiv)';
         } else if (innlegg.status === 'pause') {
             header.textContent = '⏸ Innlegg (pause)';
-        } else if (!aktiv && rekkefølge.indexOf(innlegg) === 0) {
+        } else if (!aktiv && idx === 0) {
             header.textContent = 'Innlegg (start)';
         } else {
             header.textContent = 'Innlegg (neste)';
@@ -541,6 +590,8 @@ dialogClose.addEventListener("click", () => {
 });
 
 // ---------- INIT ----------
+
+const timeInterval = setInterval(renderEstimater, 1000);
 
 lastData(state);
 
